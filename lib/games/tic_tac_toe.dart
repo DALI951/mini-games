@@ -199,7 +199,7 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
   Widget build(BuildContext context) {
     return GameScaffold(
       title: 'Tic Tac Toe',
-      child: Column(
+      body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -299,7 +299,7 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.cardBorder),
       ),
-      child: Row(
+      body: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
@@ -336,7 +336,7 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
       key: ValueKey('ttt-$index'),
       onTap: () => _place(index),
       borderRadius: BorderRadius.circular(14),
-      child: Container(
+      body: Container(
         decoration: BoxDecoration(
           color: highlight
               ? AppColors.accent.withValues(alpha: 0.16)

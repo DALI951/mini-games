@@ -148,7 +148,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
   Widget build(BuildContext context) {
     return GameScaffold(
       title: 'Memory Match',
-      child: Column(
+      body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -201,7 +201,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.cardBorder),
       ),
-      child: Row(
+      body: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
@@ -227,7 +227,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
     return InkWell(
       onTap: () => _onTap(index),
       borderRadius: BorderRadius.circular(12),
-      child: AnimatedSwitcher(
+      body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 220),
         transitionBuilder: (child, animation) =>
             ScaleTransition(scale: animation, child: child),
