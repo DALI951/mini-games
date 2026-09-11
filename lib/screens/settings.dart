@@ -21,6 +21,8 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _haptics = true;
+  bool _twoPlayer = false;
+  bool _showResults = true;
   bool _firstBuildDone = false;
 
   UpdateStatus _status = UpdateStatus.idle;
@@ -35,6 +37,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _haptics = Prefs.haptics;
+    _twoPlayer = Prefs.twoPlayer;
+    _showResults = Prefs.showResultScreens;
   }
 
   @override
@@ -126,6 +130,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
+          _sectionTitle('Players'),
+          _card(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Game mode',
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Two players: compete on one device — pass and play.',
+                      style: TextStyle(color: AppColors.subtext, fontSize: 12),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('Single player'),
+                            selected: !_twoPlayer,
+                            onSelected: (_) {
+                              setState(() => _twoPlayer = false);
+                              Prefs.setTwoPlayer(false);
+                            },
+                            selectedColor: AppColors.accentDark,
+                            backgroundColor: AppColors.card,
+                            labelStyle: TextStyle(
+                              color: _twoPlayer
+                                  ? AppColors.subtext
+                                  : AppColors.text,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('Two players'),
+                            selected: _twoPlayer,
+                            onSelected: (_) {
+                              setState(() => _twoPlayer = true);
+                              Prefs.setTwoPlayer(true);
+                            },
+                            selectedColor: AppColors.accentDark,
+                            backgroundColor: AppColors.card,
+                            labelStyle: TextStyle(
+                              color: _twoPlayer
+                                  ? AppColors.text
+                                  : AppColors.subtext,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           _sectionTitle('Gameplay'),
           _card(
             children: [
@@ -136,6 +211,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (value) {
                   setState(() => _haptics = value);
                   Prefs.setHaptics(value);
+                },
+              ),
+              _divider(),
+              _toggleRow(
+                title: 'Result screens',
+                subtitle: 'Show win / lose overlay after each game',
+                value: _showResults,
+                onChanged: (value) {
+                  setState(() => _showResults = value);
+                  Prefs.setShowResultScreens(value);
                 },
               ),
             ],

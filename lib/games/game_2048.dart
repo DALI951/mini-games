@@ -6,9 +6,13 @@ import 'package:flutter/services.dart';
 import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
+import '../widgets/result_screen.dart';
+import '../widgets/two_player.dart';
 
 /// 2048: swipe to slide tiles, equal tiles merge into double values.
 /// Reach 2048 to win (you can keep going after).
+/// Two players: pass-and-play — each player gets one run to the end,
+/// higher score wins.
 class Game2048Screen extends StatefulWidget {
   const Game2048Screen({super.key});
 
@@ -24,12 +28,14 @@ class _Game2048ScreenState extends State<Game2048Screen> {
   int _best = 0;
   bool _won = false;
   bool _over = false;
+  late final TwoPlayerSession _session;
   final _random = Random();
 
   @override
   void initState() {
     super.initState();
     _best = Prefs.bestScore('game_2048');
+    _session = TwoPlayerSession(enabled: Prefs.twoPlayer);
     _newGame();
   }
 
@@ -42,6 +48,11 @@ class _Game2048ScreenState extends State<Game2048Screen> {
       _spawnTile();
       _spawnTile();
     });
+  }
+
+  void _resetMatch() {
+    _session.reset();
+    _newGame();
   }
 
   void _spawnTile() {
@@ -124,9 +135,28 @@ class _Game2048ScreenState extends State<Game2048Screen> {
         if (_noMovesLeft()) _over = true;
       });
       if (Prefs.haptics) HapticFeedback.lightImpact();
-      if (_won || _over) _persistBest();
+      if (_won || _over) _onRoundEnd();
     }
     return changed;
+  }
+
+  void _onRoundEnd() {
+    if (_session.isTwoPlayer) {
+      if (!_over) return; // hit 2048 and still playing — keep going
+      final next = _session.finishRound(_score);
+      if (next == 0) return; // match over — overlay announces the winner
+      setState(() => _over = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Player ${_session.currentPlayer} — your run!'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      _newGame();
+      return;
+    }
+    _persistBest();
   }
 
   bool _listsEqual(List<int?> a, List<int?> b) {
@@ -210,67 +240,93 @@ class _Game2048ScreenState extends State<Game2048Screen> {
 
   @override
   Widget build(BuildContext context) {
+    final isTwo = _session.isTwoPlayer;
     return GameScaffold(
       title: '2048',
-      body: Column(
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-            child: Row(
-              children: [
-                _statChip('Score', '$_score'),
-                const SizedBox(width: 10),
-                _statChip('Best', _best == 0 ? '—' : '$_best'),
-                const Spacer(),
-                FloatingActionButton.small(
-                  heroTag: 'g2048New',
-                  backgroundColor: AppColors.card,
-                  foregroundColor: AppColors.accent,
-                  onPressed: _newGame,
-                  tooltip: 'New game',
-                  child: const Icon(Icons.refresh),
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                child: Row(
+                  children: [
+                    _statChip('Score', '$_score'),
+                    const SizedBox(width: 10),
+                    if (isTwo)
+                      _statChip(
+                        'Match',
+                        '${_session.scoreA} vs ${_session.scoreB}',
+                      )
+                    else
+                      _statChip('Best', _best == 0 ? '—' : '$_best'),
+                    const Spacer(),
+                    FloatingActionButton.small(
+                      heroTag: 'g2048New',
+                      backgroundColor: AppColors.card,
+                      foregroundColor: AppColors.accent,
+                      onPressed: isTwo ? _resetMatch : _newGame,
+                      tooltip: 'New game',
+                      child: const Icon(Icons.refresh),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: GestureDetector(
-                    onPanEnd: (details) =>
-                        _swipe(details.velocity.pixelsPerSecond),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.cardBorder),
-                      ),
-                      child: GridView.count(
-                        crossAxisCount: _size,
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          for (var r = 0; r < _size; r++)
-                            for (var c = 0; c < _size; c++) _tile(r, c),
-                        ],
+              ),
+              Expanded(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: GestureDetector(
+                        onPanEnd: (details) =>
+                            _swipe(details.velocity.pixelsPerSecond),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.cardBorder),
+                          ),
+                          child: GridView.count(
+                            crossAxisCount: _size,
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 8,
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              for (var r = 0; r < _size; r++)
+                                for (var c = 0; c < _size; c++) _tile(r, c),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
+              const SizedBox(height: 10),
+              Text(
+                isTwo && !_session.finished && !_over
+                    ? 'Player ${_session.currentPlayer} — swipe to move'
+                    : 'Swipe to move',
+                style: const TextStyle(color: AppColors.subtext, fontSize: 12),
+              ),
+              const SizedBox(height: 6),
+            ],
+          ),
+          if (_over && Prefs.showResultScreens)
+            ResultOverlay(
+              type: isTwo ? _session.resultType : ResultType.lose,
+              title: isTwo
+                  ? _session.winnerTitle
+                  : (_won ? 'You reached 2048!' : 'Game over'),
+              subtitle: isTwo
+                  ? _session.matchSubtitle
+                  : 'Score $_score · Best $_best',
+              onPrimary: isTwo ? _resetMatch : _newGame,
+              secondaryLabel: 'Home',
+              onSecondary: () => Navigator.of(context).pop(),
             ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Swipe to move',
-            style: TextStyle(color: AppColors.subtext, fontSize: 12),
-          ),
-          const SizedBox(height: 6),
         ],
       ),
     );

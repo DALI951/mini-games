@@ -12,12 +12,9 @@ void main() {
   });
 
   testWidgets('two players can take turns', (tester) async {
+    await Prefs.setTwoPlayer(true);
     await tester.pumpWidget(const MaterialApp(home: TicTacToeScreen()));
     await tester.pump();
-    await tester.pump();
-
-    // Tap the "2 players" chip so no AI timer gets scheduled.
-    await tester.tap(find.text('2 players'));
     await tester.pump();
 
     // X plays center.
@@ -46,11 +43,9 @@ void main() {
   });
 
   testWidgets('a winning line is detected', (tester) async {
+    await Prefs.setTwoPlayer(true);
     await tester.pumpWidget(const MaterialApp(home: TicTacToeScreen()));
     await tester.pump();
-    await tester.pump();
-
-    await tester.tap(find.text('2 players'));
     await tester.pump();
 
     // X takes the top row while O blocks elsewhere: cells 0,3,1,4,2.
@@ -65,10 +60,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('ttt-2')));
     await tester.pump();
 
-    expect(find.text('X wins!'), findsOneWidget);
+    // Result overlay appears (result screens on by default): status line
+    // says "X wins!" and the drawer shows its own copy + action buttons.
+    expect(find.text('X wins!'), findsNWidgets(2));
+    expect(find.text('Play again'), findsOneWidget);
   });
 
   testWidgets('vs AI mode makes the bot play', (tester) async {
+    await Prefs.setTwoPlayer(false);
     await tester.pumpWidget(const MaterialApp(home: TicTacToeScreen()));
     await tester.pump();
     await tester.pump();
@@ -81,5 +80,30 @@ void main() {
     expect(find.byType(Text), findsWidgets);
     expect(find.widgetWithText(InkWell, 'O'), findsOneWidget);
     expect(find.text('X to move'), findsOneWidget);
+  });
+
+  testWidgets('result overlay is hidden when disabled in settings', (
+    tester,
+  ) async {
+    await Prefs.setShowResultScreens(false);
+    await Prefs.setTwoPlayer(true);
+    await tester.pumpWidget(const MaterialApp(home: TicTacToeScreen()));
+    await tester.pump();
+    await tester.pump();
+
+    // X takes the top row: cells 0,3,1,4,2.
+    await tester.tap(find.byKey(const ValueKey('ttt-0')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('ttt-3')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('ttt-1')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('ttt-4')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('ttt-2')));
+    await tester.pump();
+
+    expect(find.text('Play again'), findsNothing);
+    expect(find.text('X wins!'), findsOneWidget);
   });
 }

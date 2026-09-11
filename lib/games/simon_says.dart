@@ -7,9 +7,12 @@ import 'package:flutter/services.dart';
 import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
+import '../widgets/result_screen.dart';
+import '../widgets/two_player.dart';
 
 /// Simon Says: watch the light sequence, then repeat it. One step longer
 /// every round; a wrong tap ends the run.
+/// Two players: pass-and-play — each player runs once, higher score wins.
 class SimonScreen extends StatefulWidget {
   const SimonScreen({super.key});
 
@@ -39,12 +42,15 @@ class _SimonScreenState extends State<SimonScreen> {
   bool _busy = false;
   int _lit = -1;
   int _runId = 0; // cancels stale async gaps on restart/dispose
+  bool _over = false;
+  late final TwoPlayerSession _session;
   final _random = Random();
 
   @override
   void initState() {
     super.initState();
     _best = Prefs.bestScore('simon_says');
+    _session = TwoPlayerSession(enabled: Prefs.twoPlayer);
     _sequence = [];
   }
 
@@ -63,6 +69,7 @@ class _SimonScreenState extends State<SimonScreen> {
       _playerTurn = false;
       _busy = true;
       _lit = -1;
+      _over = false;
     });
     await Future<void>.delayed(const Duration(milliseconds: 400));
     if (!mounted || id != _runId) return;
@@ -134,106 +141,131 @@ class _SimonScreenState extends State<SimonScreen> {
       _busy = true;
       _lit = -1;
     });
+
+    if (_session.isTwoPlayer) {
+      final next = _session.finishRound(runScore);
+      if (next == 0) {
+        setState(() => _over = true);
+        return;
+      }
+      if (!mounted || id != _runId) return;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Player ${_session.currentPlayer} — your turn!'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      await _start();
+      return;
+    }
+
     await Prefs.saveBestScore('simon_says', runScore);
     if (!mounted || id != _runId) return;
     final newBest = Prefs.bestScore('simon_says');
-    if (!mounted) return;
-    setState(() => _best = newBest);
-    if (mounted) {
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: Text(
-            runScore > 0 ? 'Score $runScore' : 'Oops!',
-            style: const TextStyle(color: AppColors.text, fontSize: 17),
-          ),
-          content: const Text(
-            'Wrong move — the sequence got you.',
-            style: TextStyle(color: AppColors.subtext, fontSize: 14),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _start();
-              },
-              child: const Text(
-                'Retry',
-                style: TextStyle(color: AppColors.accent),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    setState(() {
+      _best = newBest;
+      _over = true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final isTwo = _session.isTwoPlayer;
+    final who = isTwo && !_session.finished ? _session.currentPlayer : null;
+    final statusText = _playerTurn
+        ? (who != null
+              ? 'Player $who — repeat the sequence'
+              : 'Your turn — repeat the sequence')
+        : _busy
+        ? 'Watch…'
+        : who != null
+        ? 'Player $who — tap start'
+        : 'Tap start to play';
+
     return GameScaffold(
       title: 'Simon Says',
-      body: Column(
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-            child: Row(
-              children: [
-                _statChip('Score', '$_score'),
-                const SizedBox(width: 10),
-                _statChip('Best', _best == 0 ? '—' : '$_best'),
-                const Spacer(),
-                FloatingActionButton.small(
-                  heroTag: 'simonStart',
-                  backgroundColor: AppColors.card,
-                  foregroundColor: AppColors.accent,
-                  onPressed: _start,
-                  tooltip: _sequence.isEmpty ? 'Start' : 'Restart',
-                  child: Icon(
-                    _sequence.isEmpty ? Icons.play_arrow : Icons.refresh,
-                  ),
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                child: Row(
+                  children: [
+                    _statChip('Score', '$_score'),
+                    const SizedBox(width: 10),
+                    if (isTwo)
+                      _statChip(
+                        'Match',
+                        '${_session.scoreA} vs ${_session.scoreB}',
+                      )
+                    else
+                      _statChip('Best', _best == 0 ? '—' : '$_best'),
+                    const Spacer(),
+                    FloatingActionButton.small(
+                      heroTag: 'simonStart',
+                      backgroundColor: AppColors.card,
+                      foregroundColor: AppColors.accent,
+                      onPressed: isTwo ? _resetMatch : _start,
+                      tooltip: _sequence.isEmpty ? 'Start' : 'Restart',
+                      child: Icon(
+                        _sequence.isEmpty ? Icons.play_arrow : Icons.refresh,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          Text(
-            _playerTurn
-                ? 'Your turn — repeat the sequence'
-                : _busy
-                ? 'Watch…'
-                : 'Tap start to play',
-            style: const TextStyle(
-              color: AppColors.subtext,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 14,
-                    crossAxisSpacing: 14,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [for (var i = 0; i < 4; i++) _pad(i)],
+              ),
+              Text(
+                statusText,
+                style: const TextStyle(
+                  color: AppColors.subtext,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: GridView.count(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 14,
+                        crossAxisSpacing: 14,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [for (var i = 0; i < 4; i++) _pad(i)],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
+          if (_over && Prefs.showResultScreens)
+            ResultOverlay(
+              type: isTwo ? _session.resultType : ResultType.lose,
+              title: isTwo
+                  ? _session.winnerTitle
+                  : (_score > 0 ? 'Score $_score' : 'Oops!'),
+              subtitle: isTwo
+                  ? _session.matchSubtitle
+                  : 'The sequence got you${_score > 0 ? " after $_score steps" : ""}',
+              onPrimary: _resetMatch,
+              secondaryLabel: 'Home',
+              onSecondary: () => Navigator.of(context).pop(),
+            ),
         ],
       ),
     );
+  }
+
+  void _resetMatch() {
+    _session.reset();
+    _start();
   }
 
   Widget _statChip(String label, String value) {

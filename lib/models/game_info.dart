@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../games/color_rush.dart';
+import '../games/connect_four.dart';
 import '../games/game_2048.dart';
+import '../games/higher_lower.dart';
 import '../games/memory_match.dart';
+import '../games/rps.dart';
 import '../games/simon_says.dart';
 import '../games/snake.dart';
 import '../games/tic_tac_toe.dart';
+import '../games/word_unscramble.dart';
 import '../theme.dart';
 
 /// Registry of every game in the hub. Adding a new game = adding one entry
@@ -69,13 +74,58 @@ final List<GameInfo> kGames = [
     color: AppColors.gameViolet,
     builder: _game2048,
   ),
+  GameInfo(
+    id: 'rps',
+    title: 'Rock Paper Scissors',
+    subtitle: 'First to 3 wins the match',
+    icon: Icons.back_hand,
+    color: AppColors.gameRed,
+    builder: _rps,
+  ),
+  GameInfo(
+    id: 'connect_four',
+    title: 'Connect Four',
+    subtitle: 'Drop discs, get four',
+    icon: Icons.circle,
+    color: AppColors.gameAmber,
+    builder: _connectFour,
+  ),
+  GameInfo(
+    id: 'color_rush',
+    title: 'Color Rush',
+    subtitle: 'Stroop test — tap the ink',
+    icon: Icons.palette,
+    color: AppColors.gameGreen,
+    builder: _colorRush,
+  ),
+  GameInfo(
+    id: 'word_unscramble',
+    title: 'Word Unscramble',
+    subtitle: 'Unscramble, pick the answer',
+    icon: Icons.abc,
+    color: AppColors.gameBlue,
+    builder: _wordUnscramble,
+  ),
+  GameInfo(
+    id: 'higher_lower',
+    title: 'Higher or Lower',
+    subtitle: 'Guess big or small',
+    icon: Icons.swap_vert,
+    color: AppColors.gameViolet,
+    builder: _higherLower,
+  ),
 ];
 
 Widget _ttt(BuildContext context) => const TicTacToeScreen();
-Widget _memory(BuildContext context) => const MemoryScreen();
+Widget _memory(BuildContext context) => MemoryScreen();
 Widget _simon(BuildContext context) => const SimonScreen();
 Widget _snake(BuildContext context) => const SnakeScreen();
 Widget _game2048(BuildContext context) => const Game2048Screen();
+Widget _rps(BuildContext context) => const RpsScreen();
+Widget _connectFour(BuildContext context) => const ConnectFourScreen();
+Widget _colorRush(BuildContext context) => const ColorRushScreen();
+Widget _wordUnscramble(BuildContext context) => const WordUnscrambleScreen();
+Widget _higherLower(BuildContext context) => const HigherLowerScreen();
 
 /// Wraps a game builder with a consistent scaffold (title bar over the
 /// dark cinema background).

@@ -25,10 +25,25 @@ class Prefs {
   // ---- settings ----
 
   static const _kHaptics = 'settings.haptics';
+  static const _kTwoPlayer = 'settings.twoPlayer';
+  static const _kShowResults = 'settings.showResultScreens';
 
   static bool get haptics => _p.getBool(_kHaptics) ?? true;
 
   static Future<void> setHaptics(bool value) => _p.setBool(_kHaptics, value);
+
+  /// Global game mode. When true every game plays in two-player mode
+  /// (head-to-head where possible, pass-and-play otherwise).
+  static bool get twoPlayer => _p.getBool(_kTwoPlayer) ?? false;
+
+  static Future<void> setTwoPlayer(bool value) =>
+      _p.setBool(_kTwoPlayer, value);
+
+  /// Shows the win/lose result overlay at the end of every game.
+  static bool get showResultScreens => _p.getBool(_kShowResults) ?? true;
+
+  static Future<void> setShowResultScreens(bool value) =>
+      _p.setBool(_kShowResults, value);
 
   // ---- high scores ----
 
@@ -53,5 +68,10 @@ class Prefs {
     'snake',
     'game_2048',
     'tic_tac_toe',
+    'rps',
+    'connect_four',
+    'color_rush',
+    'word_unscramble',
+    'higher_lower',
   ];
 }

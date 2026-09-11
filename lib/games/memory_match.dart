@@ -7,9 +7,13 @@ import 'package:flutter/services.dart';
 import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
+import '../widgets/result_screen.dart';
+import '../widgets/two_player.dart';
 
 /// Classic card-memory game: find all 8 emoji pairs in as few moves as
 /// possible. Best score (fewest moves) is persisted.
+/// Two players: pass-and-play — each player solves the full deck once;
+/// fewer moves wins.
 class MemoryScreen extends StatefulWidget {
   const MemoryScreen({super.key});
 
@@ -37,6 +41,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
   bool _busy = false;
   int _best = 0;
   Timer? _flipBackTimer;
+  bool _over = false;
+  late final TwoPlayerSession _session;
 
   final _random = Random();
 
@@ -44,7 +50,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
   void initState() {
     super.initState();
     _best = Prefs.bestScore('memory_match');
-    _start();
+    _session = TwoPlayerSession(enabled: Prefs.twoPlayer, lowerIsBetter: true);
+    _startRound();
   }
 
   @override
@@ -53,7 +60,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
     super.dispose();
   }
 
-  void _start() {
+  void _startRound() {
     _flipBackTimer?.cancel();
     final deck = [..._symbols, ..._symbols]..shuffle(_random);
     setState(() {
@@ -63,7 +70,13 @@ class _MemoryScreenState extends State<MemoryScreen> {
       _firstIndex = null;
       _moves = 0;
       _busy = false;
+      _over = false;
     });
+  }
+
+  void _resetMatch() {
+    _session.reset();
+    _startRound();
   }
 
   void _onTap(int index) {
@@ -105,89 +118,127 @@ class _MemoryScreenState extends State<MemoryScreen> {
 
   Future<void> _maybeWon() async {
     if (_matched.length < _cards.length) return;
+
+    if (_session.isTwoPlayer) {
+      final next = _session.finishRound(_moves);
+      if (next == 0) {
+        // Match over — reveal winner.
+        setState(() => _over = true);
+        return;
+      }
+      // Other player's turn.
+      setState(() => _over = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Player ${_session.currentPlayer} — your turn! Fewer moves wins.',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      _startRound();
+      return;
+    }
+
     await Prefs.saveBestScore('memory_match', _moves);
     if (!mounted) return;
     final newBest = _moves;
-    setState(() => _best = newBest);
-    if (mounted) {
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: const Text(
-            'You matched them all!',
-            style: TextStyle(color: AppColors.text, fontSize: 17),
-          ),
-          content: Text(
-            'Finished in $_moves moves.',
-            style: const TextStyle(color: AppColors.subtext, fontSize: 14),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _start();
-              },
-              child: const Text(
-                'Play again',
-                style: TextStyle(color: AppColors.accent),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    setState(() {
+      _best = newBest;
+      _over = true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final who = _session.isTwoPlayer && !_session.finished
+        ? 'P${_session.currentPlayer}'
+        : null;
     return GameScaffold(
       title: 'Memory Match',
-      body: Column(
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-            child: Row(
-              children: [
-                _statChip('Moves', '$_moves'),
-                const SizedBox(width: 10),
-                _statChip('Best', _best == 0 ? '—' : '$_best'),
-                const Spacer(),
-                FloatingActionButton.small(
-                  heroTag: 'memRestart',
-                  backgroundColor: AppColors.card,
-                  foregroundColor: AppColors.accent,
-                  onPressed: _start,
-                  tooltip: 'Shuffle',
-                  child: const Icon(Icons.refresh),
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        _statChip('Moves', '$_moves'),
+                        const SizedBox(width: 10),
+                        if (!_session.isTwoPlayer)
+                          _statChip('Best', _best == 0 ? '—' : '$_best'),
+                        if (_session.isTwoPlayer)
+                          _statChip(
+                            'Score',
+                            '${_session.scoreA} vs ${_session.scoreB}',
+                          ),
+                        const Spacer(),
+                        FloatingActionButton.small(
+                          heroTag: 'memRestart',
+                          backgroundColor: AppColors.card,
+                          foregroundColor: AppColors.accent,
+                          onPressed: _session.isTwoPlayer
+                              ? _resetMatch
+                              : _startRound,
+                          tooltip: 'Shuffle',
+                          child: const Icon(Icons.refresh),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      who == null
+                          ? (_session.isTwoPlayer
+                                ? 'Solve the deck with the fewest moves'
+                                : 'Find all pairs in few moves')
+                          : 'Player $who — your round',
+                      style: const TextStyle(
+                        color: AppColors.subtext,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: GridView.count(
-                    crossAxisCount: 4,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      for (var i = 0; i < _cards.length; i++) _cardTile(i),
-                    ],
+              ),
+              Expanded(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: GridView.count(
+                        crossAxisCount: 4,
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          for (var i = 0; i < _cards.length; i++) _cardTile(i),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
+          if (_over && Prefs.showResultScreens)
+            ResultOverlay(
+              type: _session.isTwoPlayer ? _session.resultType : ResultType.win,
+              title: _session.isTwoPlayer
+                  ? _session.winnerTitle
+                  : 'You matched them all!',
+              subtitle: _session.isTwoPlayer
+                  ? _session.matchSubtitle
+                  : 'Finished in $_moves moves',
+              onPrimary: _resetMatch,
+              secondaryLabel: 'Home',
+              onSecondary: () => Navigator.of(context).pop(),
+            ),
         ],
       ),
     );

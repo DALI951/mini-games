@@ -6,8 +6,10 @@ import 'package:flutter/services.dart';
 import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
+import '../widgets/result_screen.dart';
 
-/// Classic 3-in-a-row. Two modes: vs a perfect-ish AI or hotseat 2 players.
+/// Classic 3-in-a-row. Single: vs a perfect-ish AI. Two players: hotseat,
+/// driven by the global Players setting (Settings → Game mode).
 class TicTacToeScreen extends StatefulWidget {
   const TicTacToeScreen({super.key});
 
@@ -39,7 +41,7 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
   @override
   void initState() {
     super.initState();
-    _reset(mode: true);
+    _reset();
   }
 
   @override
@@ -48,12 +50,12 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
     super.dispose();
   }
 
-  void _reset({required bool mode}) {
+  void _reset() {
     _aiTimer?.cancel();
     setState(() {
       _board = List<String?>.filled(9, null);
       _xTurn = true;
-      _vsAi = mode;
+      _vsAi = !Prefs.twoPlayer;
       _winner = null;
       _xWins = 0;
       _oWins = 0;
@@ -197,95 +199,96 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final over = _gameOver;
+    final resultTitle = _winner == null
+        ? "It's a draw!"
+        : _vsAi
+        ? (_winner == 'X' ? 'You win!' : 'You lose')
+        : '${_winner == 'X' ? 'X' : 'O'} wins!';
+
     return GameScaffold(
       title: 'Tic Tac Toe',
-      body: Column(
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-            child: Column(
-              children: [
-                Row(
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                child: Column(
                   children: [
-                    _scoreChip('X', _xWins, AppColors.accent),
-                    const SizedBox(width: 10),
-                    _scoreChip('O', _oWins, AppColors.subtext),
-                    const SizedBox(width: 10),
-                    _scoreChip('=', _draws, AppColors.subtext),
-                    const Spacer(),
-                    FloatingActionButton.small(
-                      heroTag: 'tttNew',
-                      backgroundColor: AppColors.card,
-                      foregroundColor: AppColors.accent,
-                      onPressed: _newRound,
-                      tooltip: 'New round',
-                      child: const Icon(Icons.refresh),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ChoiceChip(
-                        label: const Text('2 players'),
-                        selected: !_vsAi,
-                        onSelected: (_) => _reset(mode: false),
-                        selectedColor: AppColors.accentDark,
-                        backgroundColor: AppColors.card,
-                        labelStyle: const TextStyle(
-                          color: AppColors.text,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                    Row(
+                      children: [
+                        _scoreChip('X', _xWins, AppColors.accent),
+                        const SizedBox(width: 10),
+                        _scoreChip('O', _oWins, AppColors.subtext),
+                        const SizedBox(width: 10),
+                        _scoreChip('=', _draws, AppColors.subtext),
+                        const Spacer(),
+                        FloatingActionButton.small(
+                          heroTag: 'tttNew',
+                          backgroundColor: AppColors.card,
+                          foregroundColor: AppColors.accent,
+                          onPressed: over ? _reset : _newRound,
+                          tooltip: 'Restart',
+                          child: const Icon(Icons.refresh),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ChoiceChip(
-                        label: const Text('vs AI'),
-                        selected: _vsAi,
-                        onSelected: (_) => _reset(mode: true),
-                        selectedColor: AppColors.accentDark,
-                        backgroundColor: AppColors.card,
-                        labelStyle: const TextStyle(
-                          color: AppColors.text,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _statusText,
+                      style: TextStyle(
+                        color: _winner != null
+                            ? AppColors.accent
+                            : AppColors.text,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  _statusText,
-                  style: TextStyle(
-                    color: _winner != null ? AppColors.accent : AppColors.text,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: GridView.count(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [for (var i = 0; i < 9; i++) _tile(i)],
+              ),
+              Expanded(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: GridView.count(
+                        crossAxisCount: 3,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [for (var i = 0; i < 9; i++) _tile(i)],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
+          if (over && _winner != null && Prefs.showResultScreens)
+            ResultOverlay(
+              type: _winner == 'X'
+                  ? ResultType.win
+                  : _winner == 'O'
+                  ? ResultType.lose
+                  : ResultType.draw,
+              title: resultTitle,
+              subtitle: 'X: $_xWins · O: $_oWins · Draws: $_draws',
+              onPrimary: _newRound,
+              secondaryLabel: 'New match',
+              onSecondary: _reset,
+            ),
+          if (over && _winner == null && Prefs.showResultScreens)
+            ResultOverlay(
+              type: ResultType.draw,
+              title: "It's a draw!",
+              subtitle: 'X: $_xWins · O: $_oWins · Draws: $_draws',
+              onPrimary: _newRound,
+              secondaryLabel: 'New match',
+              onSecondary: _reset,
+            ),
         ],
       ),
     );

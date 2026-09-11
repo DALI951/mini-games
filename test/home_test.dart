@@ -10,7 +10,7 @@ void main() {
     await Prefs.init();
   });
 
-  testWidgets('hub renders all five games', (tester) async {
+  testWidgets('hub renders all ten games', (tester) async {
     await tester.pumpWidget(const MiniGamesApp());
     await tester.pump();
 
@@ -20,6 +20,11 @@ void main() {
     expect(find.text('Simon Says'), findsOneWidget);
     expect(find.text('Snake'), findsOneWidget);
     expect(find.text('2048'), findsOneWidget);
+    expect(find.text('Rock Paper Scissors'), findsOneWidget);
+    expect(find.text('Connect Four'), findsOneWidget);
+    expect(find.text('Color Rush'), findsOneWidget);
+    expect(find.text('Word Unscramble'), findsOneWidget);
+    expect(find.text('Higher or Lower'), findsOneWidget);
   });
 
   testWidgets('tapping a game card opens that game', (tester) async {
