@@ -77,9 +77,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             '${kGames.length} games and counting — more added with every version.',
-            style: TextStyle(color: AppColors.subtext, fontSize: 13),
+            style: const TextStyle(color: AppColors.subtext, fontSize: 13),
           ),
           const SizedBox(height: 16),
           if (_update != null && !_bannerDismissed) ...[

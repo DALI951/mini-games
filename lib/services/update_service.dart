@@ -100,7 +100,7 @@ class UpdateService {
     var received = 0;
     try {
       await for (final chunk in streamed.stream) {
-        sink.add(chunk);
+        await sink.writeFrom(chunk);
         received += chunk.length;
         onProgress(received, total);
       }

@@ -80,16 +80,16 @@ Widget _game2048(BuildContext context) => const Game2048Screen();
 /// Wraps a game builder with a consistent scaffold (title bar over the
 /// dark cinema background).
 class GameScaffold extends StatelessWidget {
-  const GameScaffold({super.key, required this.title, required this.child});
+  const GameScaffold({super.key, required this.title, required this.body});
 
   final String title;
-  final Widget child;
+  final Widget body;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(title)),
-      body: child,
+      body: body,
     );
   }
 }
