@@ -16,8 +16,8 @@ void main() {
     await tester.pump();
 
     expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('High scores'), findsOneWidget);
-    expect(find.text('Updates'), findsOneWidget);
+    expect(find.text('HIGH SCORES'), findsOneWidget);
+    expect(find.text('UPDATES'), findsOneWidget);
     expect(find.text('Check for updates'), findsOneWidget);
     expect(find.text('Haptics'), findsOneWidget);
   });

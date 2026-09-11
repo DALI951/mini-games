@@ -23,13 +23,25 @@ void main() {
     // X plays center.
     await tester.tap(find.byKey(const ValueKey('ttt-4')));
     await tester.pump();
-    expect(find.text('X'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('ttt-4')),
+        matching: find.text('X'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('O to move'), findsOneWidget);
 
     // O plays a corner.
     await tester.tap(find.byKey(const ValueKey('ttt-0')));
     await tester.pump();
-    expect(find.text('O'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('ttt-0')),
+        matching: find.text('O'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('X to move'), findsOneWidget);
   });
 
@@ -66,7 +78,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('O'), findsOneWidget);
+    expect(find.byType(Text), findsWidgets);
+    expect(find.widgetWithText(InkWell, 'O'), findsOneWidget);
     expect(find.text('X to move'), findsOneWidget);
   });
 }
