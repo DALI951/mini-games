@@ -299,7 +299,7 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.cardBorder),
       ),
-      body: Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
@@ -336,7 +336,7 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
       key: ValueKey('ttt-$index'),
       onTap: () => _place(index),
       borderRadius: BorderRadius.circular(14),
-      body: Container(
+      child: Container(
         decoration: BoxDecoration(
           color: highlight
               ? AppColors.accent.withValues(alpha: 0.16)

@@ -201,7 +201,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.cardBorder),
       ),
-      body: Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
@@ -227,7 +227,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
     return InkWell(
       onTap: () => _onTap(index),
       borderRadius: BorderRadius.circular(12),
-      body: AnimatedSwitcher(
+      child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 220),
         transitionBuilder: (child, animation) =>
             ScaleTransition(scale: animation, child: child),
