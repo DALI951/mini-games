@@ -1,0 +1,17 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+
+# Local keystore material — signing happens in CI from GitHub secrets.
+*.jks
+*.keystore
+secrets/
+
+# OS noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,146 @@
+name: build-apk
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEY: ${{ secrets.KEYSTORE_B64 != '' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        continue-on-error: true
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate android/ scaffold (never built locally)
+        run: flutter create --platforms android --org ai.minigames --project-name minigames .
+
+      - name: Regenerate app icon into Android mipmaps
+        run: |
+          pip install pillow --quiet
+          python dev/make_icons.py
+
+      - name: Set app label + Android permissions
+        run: |
+          python - <<'PY'
+          p = 'android/app/src/main/AndroidManifest.xml'
+          s = open(p).read()
+
+          # App label shown on the launcher.
+          old = 'android:label="minigames"'
+          if old in s:
+              s = s.replace(old, 'android:label="MiniGames"')
+              print('Label set to MiniGames')
+          else:
+              print('Label already set or different')
+
+          # Permissions: internet (update checks + APK download) and
+          # install-from-unknown-sources (in-app updates).
+          for perm, desc in {
+              'android.permission.INTERNET': 'INTERNET',
+              'android.permission.REQUEST_INSTALL_PACKAGES': 'REQUEST_INSTALL_PACKAGES',
+          }.items():
+              if perm not in s:
+                  s = s.replace('</manifest>',
+                      f'    <uses-permission android:name="{perm}"/>\n</manifest>')
+                  print(f'Added {desc}')
+              else:
+                  print(f'{desc} already present')
+          open(p, 'w').write(s)
+          PY
+
+      - name: Install deps
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-warnings --no-fatal-infos
+
+      - name: Test
+        run: flutter test
+
+      - name: Inject signing keystore
+        if: env.HAS_KEY == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          set -e
+          echo "$KEYSTORE_B64" | base64 -d > android/app/minigames.jks
+          test -s android/app/minigames.jks
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Extract version for artifact naming
+        id: version
+        run: |
+          V=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d+ -f1)
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Upload unsigned release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-unsigned
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Align and sign (zipalign + apksigner)
+        if: env.HAS_KEY == 'true'
+        env:
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
+          KEYSTORE_KEY_PASS: ${{ secrets.KEYSTORE_KEY_PASS }}
+        run: |
+          set -e
+          VERSION=${{ steps.version.outputs.version }}
+          ALIGNED=build/app/outputs/flutter-apk/aligned.apk
+          SIGNED=build/app/outputs/flutter-apk/Mini-Games-v${VERSION}.apk
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/*/ | tail -1)
+          "$BT/zipalign" -f 4 build/app/outputs/flutter-apk/app-release.apk "$ALIGNED"
+          "$BT/apksigner" sign --ks android/app/minigames.jks \
+            --ks-key-alias "$KEYSTORE_ALIAS" \
+            --ks-pass "env:KEYSTORE_PASS" \
+            --key-pass "env:KEYSTORE_KEY_PASS" \
+            --out "$SIGNED" "$ALIGNED"
+          ls -la build/app/outputs/flutter-apk/*.apk
+
+      - name: Upload signed APK
+        if: env.HAS_KEY == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: minigames-apk
+          path: build/app/outputs/flutter-apk/Mini-Games-v${{ steps.version.outputs.version }}.apk
+
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v') && env.HAS_KEY == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: MiniGames v${{ steps.version.outputs.version }}
+          body: |
+            ## MiniGames v${{ steps.version.outputs.version }}
+
+            ### Install
+            - Android: download and open the .apk (allow unknown sources)
+
+            ### What's New
+            Check the changelog in the repo README for this version's games.
+          files: build/app/outputs/flutter-apk/Mini-Games-v${{ steps.version.outputs.version }}.apk
