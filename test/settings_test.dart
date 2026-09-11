@@ -20,11 +20,18 @@ void main() {
     expect(find.text('Single player'), findsOneWidget);
     expect(find.text('Two players'), findsOneWidget);
     expect(find.text('GAMEPLAY'), findsOneWidget);
+    expect(find.text('Haptics'), findsOneWidget);
+    expect(find.text('Result screens'), findsOneWidget);
+
+    // Sections further down need scrolling into view.
+    await tester.scrollUntilVisible(
+      find.text('UPDATES'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('HIGH SCORES'), findsOneWidget);
     expect(find.text('UPDATES'), findsOneWidget);
     expect(find.text('Check for updates'), findsOneWidget);
-    expect(find.text('Haptics'), findsOneWidget);
-    expect(find.text('Result screens'), findsOneWidget);
   });
 
   testWidgets('toggling game mode writes to Prefs', (tester) async {
