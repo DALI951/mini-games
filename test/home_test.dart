@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:minigames/main.dart';
 import 'package:minigames/services/prefs.dart';
@@ -35,6 +36,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('X to move'), findsOneWidget);
+  });
+
+  testWidgets('settings icon opens the settings screen', (tester) async {
+    await tester.pumpWidget(const MiniGamesApp());
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('PLAYERS'), findsOneWidget);
   });
 
   testWidgets('back from a game returns to the hub', (tester) async {

@@ -7,7 +7,7 @@ class AppInfo {
   AppInfo._();
 
   static const String name = 'MiniGames';
-  static const String version = '0.2.0';
+  static const String version = '0.2.1';
   static const String repo = 'DALI951/mini-games';
   static const String repoUrl = 'https://github.com/DALI951/mini-games';
 

@@ -39,6 +39,13 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('MiniGames'),
         actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+            ),
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(
