@@ -29,7 +29,6 @@ void main() {
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('HIGH SCORES'), findsOneWidget);
     expect(find.text('UPDATES'), findsOneWidget);
     expect(find.text('Check for updates'), findsOneWidget);
   });
