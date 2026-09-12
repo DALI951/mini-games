@@ -173,7 +173,7 @@ final List<GameInfo> kGames = [
     tutorial: 'Two numbers — is the next one higher or lower than the '
         'current? Expert guessing on every card earns a bigger streak. '
         'Hit your goal streak to beat the level.',
-
+  ),
   GameInfo(
     id: 'stickman_duel',
     title: 'Stickman Fight',
