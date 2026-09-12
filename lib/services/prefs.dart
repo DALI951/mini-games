@@ -32,7 +32,7 @@ class Prefs {
 
   static Future<void> setHaptics(bool value) => _p.setBool(_kHaptics, value);
 
-  static const playersSingle = 'solo';
+  static const playersSolo = 'solo';
   static const playersBot = 'bot';
   static const playersTwo = 'two';
 
@@ -50,9 +50,6 @@ class Prefs {
   static const hangmanId = 'hangman';
 
   /// The two hard-coded two-player mode strings used by the intro panel.
-  static String get playersSolo => 'solo';
-  static String get playersBot => 'bot';
-  static String get playersTwo => 'two';
 
   /// Per-game mode override: 'solo', 'bot' or 'two'. Null when the game
   /// should follow the global [twoPlayer] switch.
