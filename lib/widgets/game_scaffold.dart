@@ -50,9 +50,9 @@ class GameScaffold extends StatelessWidget {
           )
         : const SizedBox.shrink();
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.bg,
         foregroundColor: AppColors.text,
         title: Text(title),
       ),
