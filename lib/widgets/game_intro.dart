@@ -255,4 +255,3 @@ IconData _diffIconFor(String label) => switch (label) {
       'Hard' => Icons.sentiment_very_dissatisfied,
       _ => Icons.sentiment_neutral,
     };
-</content>
