@@ -71,7 +71,7 @@ class _Shot {
   double x;
   double y;
   final double vx;
-  final double vy;
+  double vy;
   final int owner; // 1 or 2
   final int kind; // 0 bullet, 1 arrow, 2 bomb
   double fuse = 1.4;

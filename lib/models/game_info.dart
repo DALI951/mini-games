@@ -198,7 +198,6 @@ final List<GameInfo> kGames = [
         'colour in the wrong spot. Crack it before the tries run out.',
     supportsBot: true,
   ),
-]
 ];
 
 /// Private widget-builder aliases so the registry stays readable.
