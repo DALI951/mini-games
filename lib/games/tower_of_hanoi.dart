@@ -76,7 +76,7 @@ class _TowerOfHanoiScreenState extends State<TowerOfHanoiScreen> {
         if (won) _matchWon();
       });
     } else {
-      setState(() => _from = nullwave);
+      setState(() => _from = null);
     }
   }
 
