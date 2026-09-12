@@ -32,12 +32,48 @@ class Prefs {
 
   static Future<void> setHaptics(bool value) => _p.setBool(_kHaptics, value);
 
-  /// Global game mode. When true every game plays in two-player mode
-  /// (head-to-head where possible, pass-and-play otherwise).
+  const playersSingle = 'solo';
+  const playersBot = 'bot';
+  const playersTwo = 'two';
+
+  /// Global default mode. When true games default to two-player
+  /// (head-to-head where possible, pass-and-play otherwise). Individual
+  /// games can override this via [playerModeFor].
   static bool get twoPlayer => _p.getBool(_kTwoPlayer) ?? false;
 
   static Future<void> setTwoPlayer(bool value) =>
       _p.setBool(_kTwoPlayer, value);
+
+  static const _kModePrefix = 'game.mode.';
+
+  /// Per-game mode override: 'solo', 'bot' or 'two'. Null when the game
+  /// should follow the global [twoPlayer] switch.
+  static String? playerModeFor(String gameId) =>
+      _p.getString('$_kModePrefix$gameId');
+
+  static Future<void> setPlayerModeFor(String gameId, String mode) =>
+      _p.setString('$_kModePrefix$gameId', mode);
+
+  static Future<void> clearPlayerModeFor(String gameId) =>
+      _p.remove('$_kModePrefix$gameId');
+
+  /// Effective two-player flag for a game: per-game override wins, otherwise
+  /// the global switch.
+  static bool effectiveTwoPlayer(String gameId) {
+    final m = playerModeFor(gameId);
+    if (m == playersTwo) return true;
+    if (m == playersBot || m == playersSingle) return false;
+    return twoPlayer;
+  }
+
+  static const _kDiffPrefix = 'game.diff.';
+
+  /// Per-game difficulty: 0 = Easy, 1 = Normal, 2 = Hard (default Normal).
+  static int difficultyFor(String gameId) =>
+      _p.getInt('$_kDiffPrefix$gameId') ?? 1;
+
+  static Future<void> setDifficultyFor(String gameId, int value) =>
+      _p.setInt('$_kDiffPrefix$gameId', value);
 
   /// Shows the win/lose result overlay at the end of every game.
   static bool get showResultScreens => _p.getBool(_kShowResults) ?? true;

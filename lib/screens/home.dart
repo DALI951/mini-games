@@ -4,6 +4,7 @@ import '../app_info.dart';
 import '../models/game_info.dart';
 import '../services/update_service.dart';
 import '../theme.dart';
+import '../widgets/game_intro.dart';
 import 'settings.dart';
 
 /// The game hub: a grid of all available games, one card each.
@@ -138,9 +139,11 @@ class _GameCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () =>
-          Navigator.of(context)
-              .push(MaterialPageRoute<void>(builder: game.builder)),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => GameIntroScreen(game: game),
+        ),
+      ),
       borderRadius: BorderRadius.circular(16),
       child: Ink(
         decoration: BoxDecoration(

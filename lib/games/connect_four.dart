@@ -33,7 +33,7 @@ class _ConnectFourScreenState extends State<ConnectFourScreen> {
   @override
   void initState() {
     super.initState();
-    _twoPlayer = Prefs.twoPlayer;
+    _twoPlayer = this.twoPlayer;
     _board = List.generate(rows, (_) => List<int?>.filled(cols, null));
     _turn = true;
   }

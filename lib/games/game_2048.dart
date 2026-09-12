@@ -35,7 +35,7 @@ class _Game2048ScreenState extends State<Game2048Screen> {
   void initState() {
     super.initState();
     _best = Prefs.bestScore('game_2048');
-    _session = TwoPlayerSession(enabled: Prefs.twoPlayer);
+    _session = TwoPlayerSession(enabled: this.twoPlayer);
     _newGame();
   }
 

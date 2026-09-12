@@ -35,6 +35,12 @@ void main() {
     await tester.tap(find.text('Tic Tac Toe'));
     await tester.pumpAndSettle();
 
+    // The pre-game intro panel shows a tutorial before starting.
+    expect(find.text('Tutorial'), findsOneWidget);
+
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+
     expect(find.text('X to move'), findsOneWidget);
   });
 
@@ -55,6 +61,13 @@ void main() {
 
     await tester.tap(find.text('Memory Match'));
     await tester.pumpAndSettle();
+
+    // The intro panel shows the tutorial before the match starts.
+    expect(find.text('Tutorial'), findsOneWidget);
+
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Moves'), findsOneWidget);
 
     await tester.pageBack();

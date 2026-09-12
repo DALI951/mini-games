@@ -50,7 +50,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
   void initState() {
     super.initState();
     _best = Prefs.bestScore('memory_match');
-    _session = TwoPlayerSession(enabled: Prefs.twoPlayer, lowerIsBetter: true);
+    _session = TwoPlayerSession(enabled: this.twoPlayer, lowerIsBetter: true);
     _startRound();
   }
 

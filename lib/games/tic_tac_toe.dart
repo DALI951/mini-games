@@ -55,7 +55,7 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
     setState(() {
       _board = List<String?>.filled(9, null);
       _xTurn = true;
-      _vsAi = !Prefs.twoPlayer;
+      _vsAi = !this.twoPlayer;
       _winner = null;
       _xWins = 0;
       _oWins = 0;

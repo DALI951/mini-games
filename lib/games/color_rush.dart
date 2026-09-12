@@ -45,7 +45,7 @@ class _ColorRushScreenState extends State<ColorRushScreen> {
   @override
   void initState() {
     super.initState();
-    _twoPlayer = Prefs.twoPlayer;
+    _twoPlayer = this.twoPlayer;
     _session = TwoPlayerSession(enabled: _twoPlayer);
     _newWord();
   }

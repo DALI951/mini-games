@@ -53,7 +53,7 @@ class _WordUnscrambleScreenState extends State<WordUnscrambleScreen> {
   @override
   void initState() {
     super.initState();
-    _twoPlayer = Prefs.twoPlayer;
+    _twoPlayer = this.twoPlayer;
     _nextQuestion(skipPairReset: true);
   }
 

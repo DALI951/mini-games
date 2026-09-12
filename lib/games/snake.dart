@@ -41,7 +41,7 @@ class _SnakeScreenState extends State<SnakeScreen> {
   void initState() {
     super.initState();
     _best = Prefs.bestScore('snake');
-    _session = TwoPlayerSession(enabled: Prefs.twoPlayer);
+    _session = TwoPlayerSession(enabled: this.twoPlayer);
     _reset();
   }
 

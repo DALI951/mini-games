@@ -50,7 +50,7 @@ class _HigherLowerScreenState extends State<HigherLowerScreen> {
   @override
   void initState() {
     super.initState();
-    _twoPlayer = Prefs.twoPlayer;
+    _twoPlayer = this.twoPlayer;
     _startGame();
   }
 

@@ -50,7 +50,7 @@ class _SimonScreenState extends State<SimonScreen> {
   void initState() {
     super.initState();
     _best = Prefs.bestScore('simon_says');
-    _session = TwoPlayerSession(enabled: Prefs.twoPlayer);
+    _session = TwoPlayerSession(enabled: this.twoPlayer);
     _sequence = [];
   }
 

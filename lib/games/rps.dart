@@ -49,7 +49,7 @@ class _RpsScreenState extends State<RpsScreen> {
   @override
   void initState() {
     super.initState();
-    _twoPlayer = Prefs.twoPlayer;
+    _twoPlayer = this.twoPlayer;
   }
 
   void _resetMatch() {
