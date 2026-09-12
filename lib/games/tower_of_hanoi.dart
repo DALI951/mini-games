@@ -60,7 +60,7 @@ class _TowerOfHanoiScreenState extends State<TowerOfHanoiScreen> {
 
   void _tap(int peg) {
     if (_from == null) {
-      if (_pegs[?!].isEmpty) return;
+      if (_pegs[peg]!.isEmpty) return;
       setState(() => _from = peg);
       return;
     }
