@@ -39,6 +39,18 @@ class TwoPlayerSession {
   };
 
   String get winnerTitle => switch (winnerIdx) {
+
+  /// Subtitle line for the match-over banner: scores plus next player.
+  String get fullSubtitle {
+    final next = currentPlayer == 1 ? 'P1' : 'P2';
+    return 'P1: $scoreA  \u00b7  P2: $scoreB  ($next to move)'.replaceAll('\\u00b7','\u00b7');
+  }
+
+  /// Score of the session winner (0 when nobody has won yet).
+  int get winnerScore => winnerIdx == 1 ? scoreA : (winnerIdx == 2 ? scoreB : 0);
+
+  /// Score of the player whose turn it currently is (P1 or P2).
+  int get scoreForCurrent => currentPlayer == 1 ? scoreA : scoreB;
     1 => 'Player 1 wins!',
     2 => 'Player 2 wins!',
     _ => "It's a draw!",

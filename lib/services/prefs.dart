@@ -32,9 +32,9 @@ class Prefs {
 
   static Future<void> setHaptics(bool value) => _p.setBool(_kHaptics, value);
 
-  const playersSingle = 'solo';
-  const playersBot = 'bot';
-  const playersTwo = 'two';
+  static const playersSingle = 'solo';
+  static const playersBot = 'bot';
+  static const playersTwo = 'two';
 
   /// Global default mode. When true games default to two-player
   /// (head-to-head where possible, pass-and-play otherwise). Individual
@@ -45,6 +45,14 @@ class Prefs {
       _p.setBool(_kTwoPlayer, value);
 
   static const _kModePrefix = 'game.mode.';
+
+  /// Identifier for the Hangman game (used by its own mode/difficulty keys).
+  static const hangmanId = 'hangman';
+
+  /// The two hard-coded two-player mode strings used by the intro panel.
+  static String get playersSolo => 'solo';
+  static String get playersBot => 'bot';
+  static String get playersTwo => 'two';
 
   /// Per-game mode override: 'solo', 'bot' or 'two'. Null when the game
   /// should follow the global [twoPlayer] switch.
@@ -64,6 +72,15 @@ class Prefs {
     if (m == playersTwo) return true;
     if (m == playersBot || m == playersSingle) return false;
     return twoPlayer;
+  }
+
+  /// Recomputation helpers used by the intro panel so mode chips stay in sync.
+  static String playerModeLabelFor(String gameId) {
+    final m = playerModeFor(gameId);
+    if (m == playersTwo) return 'Two players';
+    if (m == playersBot) return 'vs Bot';
+    if (m == playersSingle) return 'Solo';
+    return twoPlayer ? 'Two players' : 'Solo';
   }
 
   static const _kDiffPrefix = 'game.diff.';
