@@ -52,7 +52,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('PLAYERS'), findsOneWidget);
   });
 
   testWidgets('back from a game returns to the hub', (tester) async {

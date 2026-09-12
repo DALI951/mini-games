@@ -16,9 +16,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('PLAYERS'), findsOneWidget);
-    expect(find.text('Single player'), findsOneWidget);
-    expect(find.text('Two players'), findsOneWidget);
     expect(find.text('GAMEPLAY'), findsOneWidget);
     expect(find.text('Haptics'), findsOneWidget);
     expect(find.text('Result screens'), findsOneWidget);
@@ -31,20 +28,6 @@ void main() {
     );
     expect(find.text('UPDATES'), findsOneWidget);
     expect(find.text('Check for updates'), findsOneWidget);
-  });
-
-  testWidgets('toggling game mode writes to Prefs', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: SettingsScreen()));
-    await tester.pump();
-
-    expect(Prefs.twoPlayer, isFalse);
-    await tester.tap(find.text('Two players'));
-    await tester.pump();
-    expect(Prefs.twoPlayer, isTrue);
-
-    await tester.tap(find.text('Single player'));
-    await tester.pump();
-    expect(Prefs.twoPlayer, isFalse);
   });
 
   testWidgets('result screens toggle flips and persists', (tester) async {

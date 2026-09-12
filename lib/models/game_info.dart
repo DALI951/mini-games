@@ -4,10 +4,12 @@ import '../games/color_rush.dart';
 import '../games/connect_four.dart';
 import '../games/game_2048.dart';
 import '../games/higher_lower.dart';
+import '../games/mastermind.dart';
 import '../games/memory_match.dart';
 import '../games/rps.dart';
 import '../games/simon_says.dart';
 import '../games/snake.dart';
+import '../games/stickman_duel.dart';
 import '../games/hangman.dart';
 import '../games/tower_of_hanoi.dart';
 import '../games/tic_tac_toe.dart';
@@ -171,7 +173,32 @@ final List<GameInfo> kGames = [
     tutorial: 'Two numbers — is the next one higher or lower than the '
         'current? Expert guessing on every card earns a bigger streak. '
         'Hit your goal streak to beat the level.',
+
+  GameInfo(
+    id: 'stickman_duel',
+    title: 'Stickman Fight',
+    subtitle: 'Blades, bows and bombs',
+    icon: Icons.sports_mma,
+    color: AppColors.gameRed,
+    builder: _stickman,
+    tutorial: 'Pick a weapon, then knock your rival off the bridge into the '
+        'spikes below. Each fall scores a round — first to 3 wins the match. '
+        'P1 uses the left controls, P2 the right. Bombs can bite the thrower.',
+    supportsBot: true,
   ),
+  GameInfo(
+    id: 'mastermind',
+    title: 'Mastermind',
+    subtitle: 'Crack the secret code',
+    icon: Icons.color_lens,
+    color: AppColors.gameViolet,
+    builder: _mastermind,
+    tutorial: 'A code is hidden as a row of coloured pegs. Guess the row: '
+        'black pegs mean right colour in the right spot, white mean right '
+        'colour in the wrong spot. Crack it before the tries run out.',
+    supportsBot: true,
+  ),
+]
 ];
 
 /// Private widget-builder aliases so the registry stays readable.
@@ -186,3 +213,5 @@ Widget _colorRush(BuildContext context) => const ColorRushScreen();
 Widget _wordUnscramble(BuildContext context) => const WordUnscrambleScreen();
 Widget _hanoi(BuildContext context) => const TowerOfHanoiScreen();
 Widget _higherLower(BuildContext context) => const HigherLowerScreen();
+Widget _stickman(BuildContext context) => const StickmanDuelScreen();
+Widget _mastermind(BuildContext context) => const MastermindScreen();
