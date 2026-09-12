@@ -7,6 +7,7 @@ import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
 import '../widgets/result_screen.dart';
+import '../widgets/game_scaffold.dart';
 
 enum _Shape { rock, paper, scissors }
 
@@ -34,6 +35,9 @@ class RpsScreen extends StatefulWidget {
 }
 
 class _RpsScreenState extends State<RpsScreen> {
+  /// Effective two-player flag for rps (per-game override wins).
+  bool get twoPlayer => Prefs.effectiveTwoPlayer('rps');
+
   static const _target = 3;
 
   late bool _twoPlayer;

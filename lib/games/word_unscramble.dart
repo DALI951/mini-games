@@ -7,6 +7,7 @@ import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
 import '../widgets/result_screen.dart';
+import '../widgets/game_scaffold.dart';
 
 const _pairs = <List<String>>[
   ['FLUTTER', 'DART'],
@@ -32,6 +33,9 @@ class WordUnscrambleScreen extends StatefulWidget {
 }
 
 class _WordUnscrambleScreenState extends State<WordUnscrambleScreen> {
+  /// Effective two-player flag for word_unscramble (per-game override wins).
+  bool get twoPlayer => Prefs.effectiveTwoPlayer('word_unscramble');
+
   late bool _twoPlayer;
   static final _random = Random();
 

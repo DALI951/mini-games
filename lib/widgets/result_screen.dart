@@ -96,3 +96,84 @@ class ResultOverlay extends StatelessWidget {
     );
   }
 }
+
+
+/// Full-screen match-over page used by the hub flow (Hangman, Tower of Hanoi).
+/// Shows the result, best score when provided, and replay / hub actions.
+class ResultScreen extends StatelessWidget {
+  const ResultScreen({
+    super.key,
+    required this.type,
+    required this.title,
+    this.subtitle,
+    this.bestScore,
+    this.gameId,
+    required this.onReplay,
+    this.onHub,
+  });
+
+  final ResultType type;
+  final String title;
+  final String? subtitle;
+  final int? bestScore;
+  final String? gameId;
+  final VoidCallback onReplay;
+  final VoidCallback? onHub;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                type == ResultType.win
+                    ? Icons.emoji_events
+                    : (type == ResultType.lose
+                        ? Icons.sentiment_dissatisfied
+                        : Icons.balance),
+                size: 72,
+                color: type == ResultType.win ? AppColors.accent : AppColors.subtext,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  subtitle!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.subtext, fontSize: 15),
+                ),
+              ],
+              if (bestScore != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Best: $bestScore',
+                  style: const TextStyle(color: AppColors.subtext, fontSize: 13),
+                ),
+              ],
+              const SizedBox(height: 32),
+              FilledButton(onPressed: onReplay, child: const Text('Play again')),
+              if (onHub != null) ...[
+                const SizedBox(height: 12),
+                TextButton(onPressed: onHub, child: const Text('Back to hub')),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

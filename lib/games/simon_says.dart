@@ -8,6 +8,7 @@ import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
 import '../widgets/result_screen.dart';
+import '../widgets/game_scaffold.dart';
 import '../widgets/two_player.dart';
 
 /// Simon Says: watch the light sequence, then repeat it. One step longer
@@ -21,6 +22,9 @@ class SimonScreen extends StatefulWidget {
 }
 
 class _SimonScreenState extends State<SimonScreen> {
+  /// Effective two-player flag for simon_says (per-game override wins).
+  bool get twoPlayer => Prefs.effectiveTwoPlayer('simon_says');
+
   static const _colors = [
     Color(0xFF7F1D1D), // red (dim)
     Color(0xFF064E3B), // green (dim)

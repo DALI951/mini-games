@@ -7,6 +7,7 @@ import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
 import '../widgets/result_screen.dart';
+import '../widgets/game_scaffold.dart';
 
 /// Connect Four — drop discs, get 4 in a row.
 /// Single: vs the AI (minimax, depth 4). Two players: same screen,
@@ -19,6 +20,9 @@ class ConnectFourScreen extends StatefulWidget {
 }
 
 class _ConnectFourScreenState extends State<ConnectFourScreen> {
+  /// Effective two-player flag for connect_four (per-game override wins).
+  bool get twoPlayer => Prefs.effectiveTwoPlayer('connect_four');
+
   static const rows = 6;
   static const cols = 7;
 

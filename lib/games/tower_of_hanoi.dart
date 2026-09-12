@@ -6,6 +6,7 @@ import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
 import '../widgets/result_screen.dart';
+import '../widgets/game_scaffold.dart';
 import '../widgets/two_player.dart';
 
 /// Tower of Hanoi: move the whole stack of disks from the left peg to the

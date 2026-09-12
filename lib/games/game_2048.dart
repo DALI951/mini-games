@@ -7,6 +7,7 @@ import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
 import '../widgets/result_screen.dart';
+import '../widgets/game_scaffold.dart';
 import '../widgets/two_player.dart';
 
 /// 2048: swipe to slide tiles, equal tiles merge into double values.
@@ -21,6 +22,9 @@ class Game2048Screen extends StatefulWidget {
 }
 
 class _Game2048ScreenState extends State<Game2048Screen> {
+  /// Effective two-player flag for game_2048 (per-game override wins).
+  bool get twoPlayer => Prefs.effectiveTwoPlayer('game_2048');
+
   static const int _size = 4;
 
   late List<List<int?>> _board;

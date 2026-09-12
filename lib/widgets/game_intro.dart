@@ -30,6 +30,39 @@ class _GameIntroScreenState extends State<GameIntroScreen> {
 
   String get _effectiveMode => _mode ?? Prefs.playersSolo;
 
+  Widget _InfoCard({required String title, required String body}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: AppColors.text,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            body,
+            style: const TextStyle(
+              color: AppColors.subtext,
+              fontSize: 14,
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   Future<void> _start() async {
     await Prefs.setPlayerModeFor(widget.game.id, _effectiveMode);
     await Prefs.setDifficultyFor(widget.game.id, _difficulty);

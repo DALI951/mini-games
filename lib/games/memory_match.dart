@@ -8,6 +8,7 @@ import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
 import '../widgets/result_screen.dart';
+import '../widgets/game_scaffold.dart';
 import '../widgets/two_player.dart';
 
 /// Classic card-memory game: find all 8 emoji pairs in as few moves as
@@ -22,6 +23,9 @@ class MemoryScreen extends StatefulWidget {
 }
 
 class _MemoryScreenState extends State<MemoryScreen> {
+  /// Effective two-player flag for memory_match (per-game override wins).
+  bool get twoPlayer => Prefs.effectiveTwoPlayer('memory_match');
+
   static const List<String> _symbols = [
     '🍎',
     '🍌',

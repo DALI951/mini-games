@@ -8,6 +8,7 @@ import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
 import '../widgets/result_screen.dart';
+import '../widgets/game_scaffold.dart';
 import '../widgets/two_player.dart';
 
 /// Classic snake on a 18x22 grid. Swipe to steer, eat the red food to grow,
@@ -21,6 +22,9 @@ class SnakeScreen extends StatefulWidget {
 }
 
 class _SnakeScreenState extends State<SnakeScreen> {
+  /// Effective two-player flag for snake (per-game override wins).
+  bool get twoPlayer => Prefs.effectiveTwoPlayer('snake');
+
   static const int _cols = 18;
   static const int _rows = 22;
 

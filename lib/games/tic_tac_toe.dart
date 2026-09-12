@@ -7,6 +7,7 @@ import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
 import '../widgets/result_screen.dart';
+import '../widgets/game_scaffold.dart';
 
 /// Classic 3-in-a-row. Single: vs a perfect-ish AI. Two players: hotseat,
 /// driven by the global Players setting (Settings → Game mode).
@@ -18,6 +19,9 @@ class TicTacToeScreen extends StatefulWidget {
 }
 
 class _TicTacToeScreenState extends State<TicTacToeScreen> {
+  /// Effective two-player flag for tic_tac_toe (per-game override wins).
+  bool get twoPlayer => Prefs.effectiveTwoPlayer('tic_tac_toe');
+
   static const _lines = [
     [0, 1, 2],
     [3, 4, 5],

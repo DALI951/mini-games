@@ -109,8 +109,6 @@ class _HangmanScreenState extends State<HangmanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scaffold = gameScaffold('Hangman');
-    // simplified: reuse a consistent scaffold via GameScaffold
     return Scaffold(
       appBar: AppBar(title: const Text('Hangman')),
       body: Padding(

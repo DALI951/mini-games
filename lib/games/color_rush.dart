@@ -8,6 +8,7 @@ import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
 import '../widgets/result_screen.dart';
+import '../widgets/game_scaffold.dart';
 import '../widgets/two_player.dart';
 
 const _words = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
@@ -29,6 +30,9 @@ class ColorRushScreen extends StatefulWidget {
 }
 
 class _ColorRushScreenState extends State<ColorRushScreen> {
+  /// Effective two-player flag for color_rush (per-game override wins).
+  bool get twoPlayer => Prefs.effectiveTwoPlayer('color_rush');
+
   late bool _twoPlayer;
   late final TwoPlayerSession _session;
 

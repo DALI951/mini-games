@@ -173,3 +173,16 @@ final List<GameInfo> kGames = [
         'Hit your goal streak to beat the level.',
   ),
 ];
+
+/// Private widget-builder aliases so the registry stays readable.
+Widget _ttt(BuildContext context) => const TicTacToeScreen();
+Widget _memory(BuildContext context) => const MemoryScreen();
+Widget _simon(BuildContext context) => const SimonScreen();
+Widget _snake(BuildContext context) => const SnakeScreen();
+Widget _game2048(BuildContext context) => const Game2048Screen();
+Widget _rps(BuildContext context) => const RpsScreen();
+Widget _connectFour(BuildContext context) => const ConnectFourScreen();
+Widget _colorRush(BuildContext context) => const ColorRushScreen();
+Widget _wordUnscramble(BuildContext context) => const WordUnscrambleScreen();
+Widget _hanoi(BuildContext context) => const TowerOfHanoiScreen();
+Widget _higherLower(BuildContext context) => const HigherLowerScreen();

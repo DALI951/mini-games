@@ -7,6 +7,7 @@ import '../models/game_info.dart';
 import '../services/prefs.dart';
 import '../theme.dart';
 import '../widgets/result_screen.dart';
+import '../widgets/game_scaffold.dart';
 
 const _topics = <String, List<dynamic>>{
   // value lists: [name, value ...] — value decides higher/lower.
@@ -26,6 +27,9 @@ class HigherLowerScreen extends StatefulWidget {
 }
 
 class _HigherLowerScreenState extends State<HigherLowerScreen> {
+  /// Effective two-player flag for higher_lower (per-game override wins).
+  bool get twoPlayer => Prefs.effectiveTwoPlayer('higher_lower');
+
   late bool _twoPlayer;
   static final _random = Random();
 

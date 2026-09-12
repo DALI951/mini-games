@@ -71,6 +71,18 @@ class TwoPlayerSession {
     return _current;
   }
 
+  void registerMove(int player) {
+    // Move bookkeeping is owned by the game; hook kept for API parity.
+  }
+
+  void recordRoundScore(int player, int score) {
+    if (player == 1) {
+      _a = score;
+    } else if (player == 2) {
+      _b = score;
+    }
+  }
+
   void reset() {
     _current = 1;
     _a = null;
