@@ -67,7 +67,7 @@ class Prefs {
   static bool effectiveTwoPlayer(String gameId) {
     final m = playerModeFor(gameId);
     if (m == playersTwo) return true;
-    if (m == playersBot || m == playersSingle) return false;
+    if (m == playersBot || m == playersSolo) return false;
     return twoPlayer;
   }
 
@@ -76,7 +76,7 @@ class Prefs {
     final m = playerModeFor(gameId);
     if (m == playersTwo) return 'Two players';
     if (m == playersBot) return 'vs Bot';
-    if (m == playersSingle) return 'Solo';
+    if (m == playersSolo) return 'Solo';
     return twoPlayer ? 'Two players' : 'Solo';
   }
 
