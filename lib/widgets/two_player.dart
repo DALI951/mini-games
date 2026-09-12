@@ -56,18 +56,6 @@ class TwoPlayerSession {
   /// Score of the player whose turn it currently is (P1 or P2).
   int get scoreForCurrent => currentPlayer == 1 ? scoreA : scoreB;
 
-  /// Subtitle line for the match-over banner: scores plus next player.
-
-    final next = currentPlayer == 1 ? 'P1' : 'P2';
-    return 'P1: $scoreA  \u00b7  P2: $scoreB  ($next to move)'.replaceAll('\\u00b7','\u00b7');
-  }
-
-  /// Score of the session winner (0 when nobody has won yet).
-  int get winnerScore => winnerIdx == 1 ? scoreA : (winnerIdx == 2 ? scoreB : 0);
-
-  /// Score of the player whose turn it currently is (P1 or P2).
-  int get scoreForCurrent => currentPlayer == 1 ? scoreA : scoreB;
-
   String get matchSubtitle => 'P1: $scoreA  ·  P2: $scoreB';
 
   /// Records the finished round's score. Returns the next player to play,
