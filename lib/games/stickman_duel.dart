@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 
 import '../services/prefs.dart';
 import '../theme.dart';
@@ -10,9 +11,9 @@ import '../widgets/result_screen.dart';
 
 /// Stickman Fight — a two-stickman duel on the pit bridge.
 ///
-/// Each fighter picks a weapon, then they trade blows on their own side of a
-/// spike pit. A hit knocks the rival back (knockback velocity, spin, gravity,
-/// ragdoll fall) — fall into the spikes and you lose the round. First to 3
+/// Forced-landscape duel on the pit bridge. Move with the joystick; hold ▲
+/// for ~3s to jump; lifting your finger fires ranged weapons; melee blades
+/// hurt on contact. Fall into the spikes and you lose the round. First to 3
 /// round-falls wins the match.
 class StickmanDuelScreen extends StatefulWidget {
   const StickmanDuelScreen({super.key});
@@ -55,8 +56,8 @@ class _Fighter {
   _Weapon weapon = _Weapon.knife;
   bool launched = false;
   double attackT = -1; // > 0 while the attack animation plays
-  bool hitDelivered = false;
   double rld = 0; // weapon cooldown
+  double hurtT = 0; // contact-damage immunity
   double lungeVx = 0;
   double walk = 0; // walk animation phase
   double thinkT = 0;
@@ -119,6 +120,8 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
   bool _win = false;
   double _phaseT = 0;
   Duration? _last;
+  final List<double> _upT = [0.0, 0.0];
+  final List<bool> _upHeld = [false, false];
 
   _Fighter get _p1 => _f[0];
   _Fighter get _p2 => _f[1];
@@ -129,6 +132,10 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     _two = Prefs.effectiveTwoPlayer('stickman_duel');
     _diff = Prefs.difficultyFor('stickman_duel');
     _startRound();
@@ -138,6 +145,12 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
   @override
   void dispose() {
     _ticker.dispose();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     super.dispose();
   }
 
@@ -165,7 +178,7 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
       f.rld = 0;
       f.lungeVx = 0;
       f.attackT = -1;
-      f.hitDelivered = false;
+      f.hurtT = 0;
       f.walk = 0;
       f.moveL = false;
       f.moveR = false;
@@ -235,6 +248,13 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
     _last = elapsed;
     final step = math.min(
         (last == null ? 0 : (elapsed - last).inMicroseconds) / 1e6, 0.05);
+
+    // keep grounded feet glued to the slab top (orientation-safe)
+    final ap = _arena.platTop;
+    for (final f in _f) {
+      if (f.grounded && f.vy == 0) f.y = ap;
+    }
+
     switch (_phase) {
       case _Phase.weaponSelect:
         // bot picks its weapon shortly after the human picks theirs
@@ -282,6 +302,7 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
     for (final f in _f) {
       f.rld = math.max(0, f.rld - dt);
       f.attackT -= dt;
+      f.hurtT = math.max(0, f.hurtT - dt);
       if (f.dead) {
         // ragdoll: keep falling with gravity + spin until off screen
         f.y += f.vy * dt;
@@ -291,6 +312,18 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
         f.rot += f.vrot * dt;
         f.vrot *= (1 - 0.8 * dt);
         continue;
+      }
+
+      // --- hold the joystick UP ~3s to jump ---
+      final pi = f.player - 1;
+      if (_upHeld[pi] && f.grounded) {
+        _upT[pi] += dt;
+        if (_upT[pi] >= 3.0) {
+          _upT[pi] = 0;
+          _jump(f);
+        }
+      } else {
+        _upT[pi] = 0;
       }
 
       // --- grounded fighter ---
@@ -336,11 +369,6 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
         // settle spin
         f.rot *= (1 - 4 * dt);
         if (f.rot.abs() < 0.01) f.rot = 0;
-
-        // melee hit check shortly after the swing starts
-        if (f.attackT > 0.05 && f.attackT < 0.17 && !f.hitDelivered) {
-          _checkMelee(f);
-        }
       } else {
         // --- airborne / falling into the pit ---
         f.y += f.vy * dt;
@@ -358,6 +386,31 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
     }
 
     if (!_two) _simBot(dt);
+
+    // melee contact — touching the rival's blade hurts YOU
+    for (final f in _f) {
+      if (f.dead || !f.grounded) continue;
+      final w = f.weapon;
+      if (w != _Weapon.knife && w != _Weapon.sword && w != _Weapon.bat) {
+        continue;
+      }
+      final foe = _f[f.player == 1 ? 1 : 0];
+      if (foe.dead || foe.hurtT > 0) continue;
+      final reach = switch (w) {
+        _Weapon.knife => 56.0,
+        _Weapon.sword => 72.0,
+        _ => 84.0, // bat
+      };
+      final dx = foe.x - (f.x + f.facing * 12);
+      if (dx.abs() > reach * 0.75 || (foe.y - f.y).abs() > 40) continue;
+      foe.hurtT = 1.1;
+      final impulse = switch (w) {
+        _Weapon.knife => 540.0,
+        _Weapon.sword => 660.0,
+        _ => 820.0,
+      };
+      _applyHit(foe, foe.x >= f.x ? 1.0 : -1.0, impulse);
+    }
 
     // projectiles
     for (final s in List<_Shot>.from(_shots)) {
@@ -392,29 +445,6 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
     }
   }
 
-  void _checkMelee(_Fighter f) {
-    final foe = _f[f.player == 1 ? 1 : 0];
-    if (foe.dead) return;
-    final reach = switch (f.weapon) {
-      _Weapon.knife => 66.0,
-      _Weapon.sword => 82.0,
-      _Weapon.bat => 96.0,
-      _ => 0.0, // ranged weapons never melee
-    };
-    if (reach <= 0) return;
-    final dx = foe.x - f.x;
-    if (dx.abs() > reach || (foe.y - f.y).abs() > 40) return;
-    // foe must be roughly in front of the attacker
-    if ((dx > 0) != (f.facing > 0) && dx.abs() > 6) return;
-    f.hitDelivered = true;
-    final impulse = switch (f.weapon) {
-      _Weapon.knife => 540.0,
-      _Weapon.sword => 660.0,
-      _ => 820.0, // bat
-    };
-    _applyHit(foe, f.facing * 1.0, impulse);
-  }
-
   void _applyHit(_Fighter foe, double dir, double impulse) {
     foe.vx += dir * impulse;
     foe.vy = -130;
@@ -442,42 +472,23 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
   void _attack(_Fighter f) {
     if (f.dead || !f.grounded || f.rld > 0 || _phase != _Phase.fight) return;
     final w = f.weapon;
+    // only ranged weapons fire via joystick release — melee is contact damage
+    if (w != _Weapon.bow && w != _Weapon.gun && w != _Weapon.bomb) return;
     switch (w) {
-      case _Weapon.knife:
-        f.lungeVx += f.facing * 520;
-        f.attackT = 0.26;
-        f.hitDelivered = false;
-        f.rld = 0.55;
-        break;
-      case _Weapon.sword:
-        f.lungeVx += f.facing * 200;
-        f.attackT = 0.36;
-        f.hitDelivered = false;
-        f.rld = 0.8;
-        break;
-      case _Weapon.bat:
-        f.lungeVx += f.facing * 280;
-        f.attackT = 0.42;
-        f.hitDelivered = false;
-        f.rld = 1.0;
-        break;
       case _Weapon.bow:
         f.attackT = 0.3;
-        f.hitDelivered = true;
         f.rld = 1.1;
         _shots.add(
             _Shot(f.x + f.facing * 26, f.y - 46, f.facing * 620.0, 0, f.player, 1));
         break;
       case _Weapon.gun:
         f.attackT = 0.18;
-        f.hitDelivered = true;
         f.rld = 1.3;
         _shots.add(
             _Shot(f.x + f.facing * 28, f.y - 46, f.facing * 1050.0, 0, f.player, 0));
         break;
       case _Weapon.bomb:
         f.attackT = 0.26;
-        f.hitDelivered = true;
         f.rld = 2.2;
         _shots.add(_Shot(f.x + f.facing * 20, f.y - 58, f.facing * 340.0, -540,
             f.player, 2));
@@ -502,7 +513,7 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
     final isRanged =
         bot.weapon == _Weapon.bow || bot.weapon == _Weapon.gun ||
         bot.weapon == _Weapon.bomb;
-    final range = isRanged ? 300.0 : 120.0;
+    final range = isRanged ? 300.0 : 8.0;
     if (dx.abs() > range) {
       bot.facing = dx > 0 ? 1 : -1;
       bot.moveL = dx < 0;
@@ -550,7 +561,7 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
 
   Widget _controls() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.cardBorder)),
@@ -558,110 +569,59 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
       child: _two
           ? Row(
               children: [
-                Expanded(child: _p1Pad()),
-                const SizedBox(width: 8),
-                Expanded(child: _p2Pad()),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _joy(1, _p1),
+                  ),
+                ),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: _joy(2, _p2),
+                  ),
+                ),
               ],
             )
-          : _soloPad(),
+          : Row(
+              children: [
+                _joy(1, _p1),
+                const Spacer(),
+                const Text(
+                  '▲ hold to jump\nrelease to fire',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: AppColors.subtext,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
-  // P1 pad: joystick outer, JUMP + weapon toward the middle.
-  Widget _p1Pad() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _Joystick(tag: 'P1-JOY', onMove: (dx) => _stick(1, dx)),
-        _roundButton(
-            tag: 'P1-J', glyph: '⬆', label: 'JUMP', onTap: () => _jump(_p1)),
-        _roundButton(tag: 'P1-A', glyph: _p1.weapon.glyph, label: 'ATTACK',
-            onTap: () => _attack(_p1)),
-      ],
+  Widget _joy(int player, _Fighter f) {
+    return _Joystick(
+      tag: 'P$player-JOY',
+      charge: _upT[player - 1] / 3,
+      onMove: (dx, dy) => _stick(player, dx, dy),
+      onRelease: () => _attack(f),
     );
   }
 
-  // P2 pad: mirrored.
-  Widget _p2Pad() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _roundButton(tag: 'P2-A', glyph: _p2.weapon.glyph, label: 'ATTACK',
-            onTap: () => _attack(_p2)),
-        _roundButton(
-            tag: 'P2-J', glyph: '⬆', label: 'JUMP', onTap: () => _jump(_p2)),
-        _Joystick(tag: 'P2-JOY', onMove: (dx) => _stick(2, dx)),
-      ],
-    );
-  }
-
-  // Solo / vs bot: joystick left, buttons right.
-  Widget _soloPad() {
-    return Row(
-      children: [
-        _Joystick(tag: 'P1-JOY', onMove: (dx) => _stick(1, dx)),
-        const Spacer(),
-        _roundButton(
-            tag: 'P1-J', glyph: '⬆', label: 'JUMP', onTap: () => _jump(_p1)),
-        const SizedBox(width: 10),
-        _roundButton(tag: 'P1-A', glyph: _p1.weapon.glyph, label: 'ATTACK',
-            onTap: () => _attack(_p1)),
-      ],
-    );
-  }
-
-  void _stick(int player, double dx) {
+  void _stick(int player, double dx, double dy) {
     final f = _f[player - 1];
     if (f.dead) return;
     f.moveL = dx < -0.25;
     f.moveR = dx > 0.25;
+    _upHeld[player - 1] = dy < -0.55;
   }
 
   void _jump(_Fighter f) {
     if (f.dead || !f.grounded || _phase != _Phase.fight) return;
     f.vy = -540;
-  }
-
-  Widget _roundButton({
-    required String tag,
-    required String glyph,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      key: ValueKey(tag),
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.cardBorder, width: 2),
-            ),
-            child: Center(
-              child: Text(
-                glyph,
-                style: const TextStyle(color: AppColors.text, fontSize: 22),
-              ),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.subtext,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   // ------------------------------------------------------ weapon select UI
@@ -763,10 +723,17 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
 // ============================================================== joystick
 
 class _Joystick extends StatefulWidget {
-  const _Joystick({required this.tag, required this.onMove});
+  const _Joystick({
+    required this.tag,
+    required this.onMove,
+    required this.onRelease,
+    this.charge = 0,
+  });
 
   final String tag;
-  final ValueChanged<double> onMove;
+  final void Function(double dx, double dy) onMove;
+  final VoidCallback onRelease;
+  final double charge; // 0..1 jump-charge progress (▲ hold)
 
   @override
   State<_Joystick> createState() => _JoystickState();
@@ -775,22 +742,27 @@ class _Joystick extends StatefulWidget {
 class _JoystickState extends State<_Joystick> {
   static const double _r = 34; // base radius
   Offset _knob = Offset.zero;
+  bool _active = false;
 
   void _drag(Offset local) {
     var d = local - const Offset(_r, _r);
     if (d.distance > _r) d = d / d.distance * _r;
+    _active = true;
     setState(() => _knob = d);
-    widget.onMove(d.dx / _r);
+    widget.onMove(d.dx / _r, d.dy / _r);
   }
 
   void _release() {
-    if (_knob == Offset.zero) return;
+    if (!_active) return;
+    _active = false;
     setState(() => _knob = Offset.zero);
-    widget.onMove(0);
+    widget.onMove(0, 0);
+    widget.onRelease();
   }
 
   @override
   Widget build(BuildContext context) {
+    final charge = widget.charge.clamp(0.0, 1.0).toDouble();
     return GestureDetector(
       key: ValueKey(widget.tag),
       onPanStart: (e) => _drag(e.localPosition),
@@ -809,6 +781,24 @@ class _JoystickState extends State<_Joystick> {
         child: Stack(
           alignment: Alignment.center,
           children: [
+            // ▲ hint — hold up to jump
+            const Positioned(
+              top: 5,
+              child: Text(
+                '▲',
+                style: TextStyle(
+                  color: AppColors.subtext,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            // jump-charge arc: fills over ~3s of holding up
+            SizedBox(
+              width: _r * 2,
+              height: _r * 2,
+              child: CustomPaint(painter: _ChargeArcPainter(charge)),
+            ),
             Transform.translate(
               offset: _knob,
               child: Container(
@@ -825,6 +815,32 @@ class _JoystickState extends State<_Joystick> {
       ),
     );
   }
+}
+
+class _ChargeArcPainter extends CustomPainter {
+  const _ChargeArcPainter(this.charge);
+
+  final double charge;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (charge <= 0.01) return;
+    canvas.drawArc(
+      (Offset.zero & size).deflate(4),
+      -math.pi / 2,
+      2 * math.pi * charge,
+      false,
+      Paint()
+        ..color = AppColors.gameAmber
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ChargeArcPainter old) =>
+      old.charge != charge;
 }
 
 // ================================================================= paint
