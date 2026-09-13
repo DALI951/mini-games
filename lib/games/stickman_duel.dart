@@ -11,10 +11,10 @@ import '../widgets/result_screen.dart';
 
 /// Stickman Fight — a two-stickman duel on the pit bridge.
 ///
-/// Forced-landscape duel on the pit bridge. Move with the joystick; hold ▲
-/// for ~3s to jump; lifting your finger fires ranged weapons; melee blades
-/// hurt on contact. Fall into the spikes and you lose the round. First to 3
-/// round-falls wins the match.
+/// Forced-landscape duel on the pit bridge. Pick a weapon (swap freely), then
+/// hit FIGHT. Joystick: move, hold ▲ to jump (steer mid-air), release to fire
+/// ranged weapons; melee blades hurt on contact. Fall into the spikes and you
+/// lose the round. First to 3 round-falls wins the match.
 class StickmanDuelScreen extends StatefulWidget {
   const StickmanDuelScreen({super.key});
 
@@ -127,6 +127,7 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
   _Fighter get _p2 => _f[1];
 
   static const double _kGravity = 1500;
+  static const double _jumpHold = 1.2; // seconds of holding ▲ to jump
   static const int _winRounds = 3;
 
   @override
@@ -156,14 +157,17 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
 
   // ---------------------------------------------------------------- phases
 
-  void _launch(int player, _Weapon w) {
+  void _selectWeapon(int player, _Weapon w) {
     final f = _f[player - 1];
     f.weapon = w;
-    f.launched = true;
-    if (_p1.launched && _p2.launched) {
-      _phase = _Phase.ready;
-      _phaseT = 0;
-    }
+    f.launched = true; // picked once — can still swap until FIGHT is pressed
+    setState(() {});
+  }
+
+  void _startFight() {
+    _startRound();
+    _phase = _Phase.ready;
+    _phaseT = 0;
     setState(() {});
   }
 
@@ -261,7 +265,7 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
         if (!_two && !_p2.launched && _p1.launched) {
           _p2.poc += step;
           if (_p2.poc > 0.5) {
-            _launch(2, _botWeapon(_diff));
+            _selectWeapon(2, _botWeapon(_diff));
             _p2.poc = 0;
           }
         }
@@ -318,7 +322,7 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
       final pi = f.player - 1;
       if (_upHeld[pi] && f.grounded) {
         _upT[pi] += dt;
-        if (_upT[pi] >= 3.0) {
+        if (_upT[pi] >= _jumpHold) {
           _upT[pi] = 0;
           _jump(f);
         }
@@ -389,13 +393,13 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
 
     // melee contact — touching the rival's blade hurts YOU
     for (final f in _f) {
-      if (f.dead || !f.grounded) continue;
+      if (f.dead) continue;
       final w = f.weapon;
       if (w != _Weapon.knife && w != _Weapon.sword && w != _Weapon.bat) {
         continue;
       }
       final foe = _f[f.player == 1 ? 1 : 0];
-      if (foe.dead || foe.hurtT > 0) continue;
+      if (foe.dead || !foe.grounded || foe.hurtT > 0) continue;
       final reach = switch (w) {
         _Weapon.knife => 56.0,
         _Weapon.sword => 72.0,
@@ -608,7 +612,7 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
   Widget _joy(int player, _Fighter f) {
     return _Joystick(
       tag: 'P$player-JOY',
-      charge: _upT[player - 1] / 3,
+      charge: _upT[player - 1] / _jumpHold,
       onMove: (dx, dy) => _stick(player, dx, dy),
       onRelease: () => _attack(f),
     );
@@ -624,7 +628,7 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
 
   void _jump(_Fighter f) {
     if (f.dead || !f.grounded || _phase != _Phase.fight) return;
-    f.vy = -540;
+    f.vy = -640; // long hop: you can steer left/right while airborne
   }
 
   // ------------------------------------------------------ weapon select UI
@@ -656,7 +660,40 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
               ],
             ],
           ),
+          _startBar(),
         ],
+      ),
+    );
+  }
+
+  Widget _startBar() {
+    final ready = _p1.launched && _p2.launched;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: InkWell(
+        key: const ValueKey('start-fight'),
+        onTap: ready ? _startFight : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: ready ? AppColors.accent : AppColors.card,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            ready
+                ? 'FIGHT!'
+                : (_two ? 'Waiting for both weapons…' : 'Waiting for your weapon…'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: ready ? AppColors.bg : AppColors.subtext,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -682,18 +719,18 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
             for (final w in _Weapon.values)
               InkWell(
                 key: ValueKey('wep-$player-${w.name}'),
-                onTap: f.launched ? null : () => _launch(player, w),
+                onTap: () => _selectWeapon(player, w),
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
-                    color: f.launched && f.weapon == w
+                    color: f.weapon == w
                         ? AppColors.accentDark
                         : AppColors.card,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: f.launched && f.weapon == w
+                      color: f.weapon == w
                           ? AppColors.accent
                           : AppColors.cardBorder,
                     ),
