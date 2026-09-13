@@ -97,7 +97,7 @@ class _Arena {
     w = newW;
     h = newH;
     pitW = math.max(48, w * 0.16);
-    platTop = h * 0.66;
+    platTop = h * 0.8;
     gapL = w / 2 - pitW / 2;
     gapR = w / 2 + pitW / 2;
   }
@@ -349,7 +349,7 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
         f.vx *= (1 - 0.35 * dt);
         f.rot += f.vrot * dt;
         f.vrot *= (1 - 1.4 * dt);
-        if (f.y > a.platTop + 26) {
+        if (f.y > a.platTop + 20) {
           f.dead = true;
           _endRound(f.player == 1 ? 2 : 1);
           return;
@@ -550,83 +550,116 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
 
   Widget _controls() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.cardBorder)),
       ),
-      child: Row(
-        children: [
-          Expanded(child: _controlCluster(1, 'P1')),
-          if (_two) ...[
-            const SizedBox(width: 10),
-            Expanded(child: _controlCluster(2, 'P2')),
-          ],
-        ],
-      ),
+      child: _two
+          ? Row(
+              children: [
+                Expanded(child: _p1Pad()),
+                const SizedBox(width: 8),
+                Expanded(child: _p2Pad()),
+              ],
+            )
+          : _soloPad(),
     );
   }
 
-  Widget _controlCluster(int player, String tag) {
-    final f = _f[player - 1];
+  // P1 pad: joystick outer, JUMP + weapon toward the middle.
+  Widget _p1Pad() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _padButton(
-          tag: '$tag-L',
-          glyph: '◀',
-          enabled: f.grounded && !f.dead,
-          onDown: () => f.moveL = true,
-          onUp: () => f.moveL = false,
-        ),
-        _padButton(
-          tag: '$tag-R',
-          glyph: '▶',
-          enabled: f.grounded && !f.dead,
-          onDown: () => f.moveR = true,
-          onUp: () => f.moveR = false,
-        ),
-        _padButton(
-          tag: '$tag-A',
-          glyph: f.weapon.glyph,
-          enabled: true,
-          onDown: () {},
-          onUp: () => _attack(f),
-        ),
+        _Joystick(tag: 'P1-JOY', onMove: (dx) => _stick(1, dx)),
+        _roundButton(
+            tag: 'P1-J', glyph: '⬆', label: 'JUMP', onTap: () => _jump(_p1)),
+        _roundButton(tag: 'P1-A', glyph: _p1.weapon.glyph, label: 'ATTACK',
+            onTap: () => _attack(_p1)),
       ],
     );
   }
 
-  Widget _padButton({
+  // P2 pad: mirrored.
+  Widget _p2Pad() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _roundButton(tag: 'P2-A', glyph: _p2.weapon.glyph, label: 'ATTACK',
+            onTap: () => _attack(_p2)),
+        _roundButton(
+            tag: 'P2-J', glyph: '⬆', label: 'JUMP', onTap: () => _jump(_p2)),
+        _Joystick(tag: 'P2-JOY', onMove: (dx) => _stick(2, dx)),
+      ],
+    );
+  }
+
+  // Solo / vs bot: joystick left, buttons right.
+  Widget _soloPad() {
+    return Row(
+      children: [
+        _Joystick(tag: 'P1-JOY', onMove: (dx) => _stick(1, dx)),
+        const Spacer(),
+        _roundButton(
+            tag: 'P1-J', glyph: '⬆', label: 'JUMP', onTap: () => _jump(_p1)),
+        const SizedBox(width: 10),
+        _roundButton(tag: 'P1-A', glyph: _p1.weapon.glyph, label: 'ATTACK',
+            onTap: () => _attack(_p1)),
+      ],
+    );
+  }
+
+  void _stick(int player, double dx) {
+    final f = _f[player - 1];
+    if (f.dead) return;
+    f.moveL = dx < -0.25;
+    f.moveR = dx > 0.25;
+  }
+
+  void _jump(_Fighter f) {
+    if (f.dead || !f.grounded || _phase != _Phase.fight) return;
+    f.vy = -540;
+  }
+
+  Widget _roundButton({
     required String tag,
     required String glyph,
-    required bool enabled,
-    required VoidCallback onDown,
-    required VoidCallback onUp,
+    required String label,
+    required VoidCallback onTap,
   }) {
     return GestureDetector(
       key: ValueKey(tag),
-      onTapDown: enabled ? (_) => onDown() : null,
-      onTapUp: (_) => onUp(),
-      onTapCancel: () => onUp(),
+      onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 62,
-        height: 52,
-        decoration: BoxDecoration(
-          color: enabled ? AppColors.card : AppColors.card.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.cardBorder),
-        ),
-        child: Center(
-          child: Text(
-            glyph,
-            style: TextStyle(
-              color: enabled ? AppColors.text : AppColors.subtext,
-              fontSize: 22,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.cardBorder, width: 2),
+            ),
+            child: Center(
+              child: Text(
+                glyph,
+                style: const TextStyle(color: AppColors.text, fontSize: 22),
+              ),
             ),
           ),
-        ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.subtext,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -726,6 +759,74 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
   }
 }
 
+
+// ============================================================== joystick
+
+class _Joystick extends StatefulWidget {
+  const _Joystick({required this.tag, required this.onMove});
+
+  final String tag;
+  final ValueChanged<double> onMove;
+
+  @override
+  State<_Joystick> createState() => _JoystickState();
+}
+
+class _JoystickState extends State<_Joystick> {
+  static const double _r = 34; // base radius
+  Offset _knob = Offset.zero;
+
+  void _drag(Offset local) {
+    var d = local - const Offset(_r, _r);
+    if (d.distance > _r) d = d / d.distance * _r;
+    setState(() => _knob = d);
+    widget.onMove(d.dx / _r);
+  }
+
+  void _release() {
+    if (_knob == Offset.zero) return;
+    setState(() => _knob = Offset.zero);
+    widget.onMove(0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: ValueKey(widget.tag),
+      onPanStart: (e) => _drag(e.localPosition),
+      onPanUpdate: (e) => _drag(e.localPosition),
+      onPanEnd: (_) => _release(),
+      onPanCancel: _release,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: _r * 2,
+        height: _r * 2,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.card,
+          border: Border.all(color: AppColors.cardBorder, width: 2),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Transform.translate(
+              offset: _knob,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.gameAmber,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ================================================================= paint
 
 class _ArenaPainter extends CustomPainter {
@@ -770,9 +871,13 @@ class _ArenaPainter extends CustomPainter {
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
 
-    canvas.drawRect(Rect.fromLTRB(0, arena.platTop, arena.gapL, arena.h), platPaint);
-    canvas.drawRect(
-        Rect.fromLTRB(arena.gapR, arena.platTop, arena.w, arena.h), platPaint);
+    final gT = arena.platTop;
+    // horizontal ground slabs (thin) — the duel reads side-to-side
+    canvas.drawRect(Rect.fromLTRB(0, gT, arena.gapL, gT + 22), platPaint);
+    canvas.drawRect(Rect.fromLTRB(arena.gapR, gT, arena.w, gT + 22), platPaint);
+    // pit: void below the gap
+    canvas.drawRect(Rect.fromLTRB(arena.gapL, gT, arena.gapR, arena.h),
+        Paint()..color = AppColors.bg);
 
     // pit spikes
     final spike = Paint()..color = AppColors.gameRed;
