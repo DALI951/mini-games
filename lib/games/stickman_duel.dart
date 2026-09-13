@@ -472,9 +472,12 @@ class _StickmanDuelScreenState extends State<StickmanDuelScreen>
   void _attack(_Fighter f) {
     if (f.dead || !f.grounded || f.rld > 0 || _phase != _Phase.fight) return;
     final w = f.weapon;
-    // only ranged weapons fire via joystick release — melee is contact damage
-    if (w != _Weapon.bow && w != _Weapon.gun && w != _Weapon.bomb) return;
     switch (w) {
+      // melee never fires — the blade itself is the weapon (contact damage)
+      case _Weapon.knife:
+      case _Weapon.sword:
+      case _Weapon.bat:
+        return;
       case _Weapon.bow:
         f.attackT = 0.3;
         f.rld = 1.1;
